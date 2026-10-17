@@ -64,7 +64,9 @@ ordering, the NWS client and both endpoints with mocked services.
 ## Deployment
 
 Frontend on Netlify (`netlify.toml`), backend on Render (`render.yaml`), both
-auto-deploying from `main`. Backend env vars: `DJANGO_SECRET_KEY`,
+auto-deploying from `main`. The free Render tier sleeps when idle, so the
+first request after a quiet stretch can take up to a minute while the service
+wakes and the weather cache fills; later requests are fast. Backend env vars: `DJANGO_SECRET_KEY`,
 `DJANGO_DEBUG`, `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`. Frontend env:
 `VITE_API_URL`.
 

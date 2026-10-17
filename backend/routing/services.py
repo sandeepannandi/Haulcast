@@ -207,16 +207,18 @@ def _fetch_one(point, wanted):
 def weather_for(points, times):
     wanted = [_hour_key(moment) for moment in times]
     results = [None] * len(points)
-    todo = []
+    cells = {}
     for i, (point, key) in enumerate(zip(points, wanted)):
         hit = _cached_weather(point[0], point[1], key)
         if hit is not None:
             results[i] = hit
         else:
-            todo.append(i)
-    if todo:
-        with ThreadPoolExecutor(max_workers=12) as pool:
-            fetched = pool.map(lambda i: (i, _fetch_one(points[i], wanted[i])), todo)
+            cells.setdefault((round(point[0], 2), round(point[1], 2), key), []).append(i)
+    if cells:
+        reps = [idxs[0] for idxs in cells.values()]
+        with ThreadPoolExecutor(max_workers=16) as pool:
+            fetched = pool.map(lambda i: (i, _fetch_one(points[i], wanted[i])), reps)
         for i, weather in fetched:
-            results[i] = weather
+            for j in cells[(round(points[i][0], 2), round(points[i][1], 2), wanted[i])]:
+                results[j] = weather
     return [r if r is not None else {"wind_mph": 0, "rain_in_hr": 0, "snow_in_hr": 0} for r in results]
