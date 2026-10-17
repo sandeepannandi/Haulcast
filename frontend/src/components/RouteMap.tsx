@@ -192,7 +192,7 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
           type: "FeatureCollection",
           features: heatCells.map((c) => ({
             type: "Feature" as const,
-            properties: { intensity: c.intensity },
+            properties: { color: LEVEL_COLORS[c.level] },
             geometry: { type: "Point" as const, coordinates: [c.lon, c.lat] },
           })),
         },
@@ -200,27 +200,13 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
       m.addLayer(
         {
           id: "haul-heat",
-          type: "heatmap",
+          type: "circle",
           source: "haul-heat",
           paint: {
-            "heatmap-weight": ["interpolate", ["linear"], ["get", "intensity"], 0, 0.45, 1, 1],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 26, 6, 48, 10, 80],
-            "heatmap-opacity": 0.8,
-            "heatmap-color": [
-              "interpolate",
-              ["linear"],
-              ["heatmap-density"],
-              0,
-              "rgba(45,164,78,0)",
-              0.15,
-              "rgba(45,164,78,0.5)",
-              0.5,
-              "rgba(212,167,44,0.65)",
-              0.75,
-              "rgba(224,130,61,0.75)",
-              1,
-              "rgba(207,34,46,0.85)",
-            ],
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 14, 6, 28, 10, 70],
+            "circle-color": ["get", "color"],
+            "circle-opacity": 0.32,
+            "circle-blur": 0.9,
           },
         },
         m.getStyle().layers.find((l) => l.id.startsWith("haul-route"))?.id
