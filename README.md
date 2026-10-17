@@ -9,6 +9,7 @@ hour forecast slider.
 
 Live: https://haulcast.netlify.app
 API: https://haulcast-api.onrender.com
+Code: https://github.com/sandeepannandi/Haulcast
 
 Stack: React + TypeScript + MapLibre frontend, Django REST backend. Routing by
 OSRM, geocoding by Nominatim, weather by the National Weather Service
