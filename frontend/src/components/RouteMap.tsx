@@ -203,8 +203,8 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
           type: "heatmap",
           source: "haul-heat",
           paint: {
-            "heatmap-weight": ["interpolate", ["linear"], ["get", "intensity"], 0, 0.05, 1, 1],
-            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 6, 32, 10, 60],
+            "heatmap-weight": ["interpolate", ["linear"], ["get", "intensity"], 0, 0.45, 1, 1],
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 26, 6, 48, 10, 80],
             "heatmap-opacity": 0.8,
             "heatmap-color": [
               "interpolate",
@@ -212,8 +212,8 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
               ["heatmap-density"],
               0,
               "rgba(45,164,78,0)",
-              0.25,
-              "rgba(45,164,78,0.55)",
+              0.15,
+              "rgba(45,164,78,0.5)",
               0.5,
               "rgba(212,167,44,0.65)",
               0.75,

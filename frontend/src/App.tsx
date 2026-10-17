@@ -24,6 +24,12 @@ export default function App() {
         setPlan(result);
         const best = result.routes.findIndex((r) => r.recommended);
         setSelected(best >= 0 ? best : 0);
+        const warm = result.routes[best >= 0 ? best : 0];
+        if (warm) {
+          fetchHeatmap(warm.geometry, result.departure, result.load_lbs, "coarse")
+            .then(() => fetchHeatmap(warm.geometry, result.departure, result.load_lbs, "full"))
+            .catch(() => undefined);
+        }
       })
       .catch((err: Error) => {
         setPlan(null);
@@ -73,10 +79,7 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <header>
-          <h1>
-            <span className="logo" />
-            Haulcast
-          </h1>
+          <h1>Haulcast</h1>
           <p>Pick the safest route across weather, load and time.</p>
         </header>
         <TripForm loading={loading} onSubmit={handleSubmit} />

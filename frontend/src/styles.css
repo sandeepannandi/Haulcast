@@ -49,28 +49,9 @@ select {
 
 .sidebar header h1 {
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: 22px;
   font-weight: 700;
   letter-spacing: -0.02em;
-}
-
-.logo {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
-  background: var(--accent);
-  position: relative;
-}
-
-.logo::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  background: #ffffff;
 }
 
 .sidebar header p {
