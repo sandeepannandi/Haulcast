@@ -1,0 +1,247 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #1f2328;
+  background: #f6f8fa;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #ffffff;
+  border-right: 1px solid #d8dee4;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.sidebar header p {
+  margin: 4px 0 0;
+  color: #57606a;
+  font-size: 13px;
+}
+
+.trip-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.trip-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #57606a;
+}
+
+.trip-form input,
+.trip-form select {
+  padding: 8px 10px;
+  border: 1px solid #d8dee4;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #1f2328;
+  background: #ffffff;
+}
+
+.trip-form input:focus,
+.trip-form select:focus {
+  outline: 2px solid #0969da33;
+  border-color: #0969da;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.trip-form button {
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  background: #1f883d;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trip-form button:disabled {
+  background: #94d3a2;
+  cursor: wait;
+}
+
+.error-banner {
+  background: #ffebe9;
+  border: 1px solid #cf222e55;
+  color: #cf222e;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.route-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.route-card {
+  text-align: left;
+  background: #f6f8fa;
+  border: 1px solid #d8dee4;
+  border-radius: 8px;
+  padding: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.route-card.selected {
+  border-color: #8250df;
+  box-shadow: 0 0 0 2px #8250df33;
+  background: #ffffff;
+}
+
+.route-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.route-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badge {
+  background: #1a7f37;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.route-stats {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 13px;
+  color: #57606a;
+}
+
+.level-chip {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.risk-bar {
+  display: flex;
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: #eaeef2;
+}
+
+.risk-bar span {
+  display: block;
+  height: 100%;
+}
+
+.no-travel-note {
+  font-size: 12px;
+  color: #cf222e;
+  font-weight: 600;
+}
+
+.heat-panel {
+  border-top: 1px solid #d8dee4;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heat-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.heat-panel input[type="range"] {
+  width: 100%;
+}
+
+.heat-time {
+  font-size: 12px;
+  color: #57606a;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: #57606a;
+  border-top: 1px solid #d8dee4;
+  padding-top: 12px;
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.map {
+  width: 100%;
+  height: 100vh;
+}
+
+.checkpoint-pop {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+@media (max-width: 800px) {
+  .layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 60vh;
+  }
+
+  .map {
+    height: 100%;
+  }
+}
