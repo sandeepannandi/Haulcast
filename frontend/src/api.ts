@@ -77,12 +77,13 @@ export async function fetchPlan(input: PlanInput): Promise<PlanResult> {
 export async function fetchHeatmap(
   geometry: [number, number][],
   time: string,
-  loadLbs: number
+  loadLbs: number,
+  detail: "coarse" | "full" = "full"
 ): Promise<HeatCell[]> {
   const resp = await fetch(`${API_URL}/heatmap/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ geometry, time, load_weight: loadLbs }),
+    body: JSON.stringify({ geometry, time, load_weight: loadLbs, detail }),
   });
   if (!resp.ok) {
     throw new Error(await readDetail(resp));

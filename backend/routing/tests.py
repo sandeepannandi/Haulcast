@@ -135,7 +135,7 @@ def fake_routes(origin, destination, count=3):
     ]
 
 
-def fake_calm_weather(points, times):
+def fake_calm_weather(points, times, workers=16):
     return [{"wind_mph": 10, "rain_in_hr": 0.0, "snow_in_hr": 0.0} for _ in points]
 
 
@@ -230,6 +230,14 @@ class HeatmapViewTest(SimpleTestCase):
         self.assertGreater(len(cells), 10)
         self.assertTrue(all(c["level"] == "low" for c in cells))
         self.assertTrue(all(c["intensity"] == 0.0 for c in cells))
+
+    @patch("routing.views.services.weather_for", side_effect=fake_calm_weather)
+    def test_coarse_detail_returns_fewer_cells(self, mock_weather):
+        body = {"geometry": FAKE_GEOMETRY, "time": "2026-10-18T12:00:00Z", "load_weight": 20000}
+        full = self.client.post("/api/heatmap/", body, format="json").json()["cells"]
+        coarse = self.client.post("/api/heatmap/", {**body, "detail": "coarse"}, format="json").json()["cells"]
+        self.assertGreater(len(coarse), 0)
+        self.assertLess(len(coarse), len(full))
 
     def test_missing_geometry_rejected(self):
         resp = self.client.post("/api/heatmap/", {"time": "2026-10-18T12:00:00Z"}, format="json")

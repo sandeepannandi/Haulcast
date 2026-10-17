@@ -204,7 +204,7 @@ def _fetch_one(point, wanted):
     return weather
 
 
-def weather_for(points, times):
+def weather_for(points, times, workers=16):
     wanted = [_hour_key(moment) for moment in times]
     results = [None] * len(points)
     cells = {}
@@ -216,7 +216,7 @@ def weather_for(points, times):
             cells.setdefault((round(point[0], 2), round(point[1], 2), key), []).append(i)
     if cells:
         reps = [idxs[0] for idxs in cells.values()]
-        with ThreadPoolExecutor(max_workers=16) as pool:
+        with ThreadPoolExecutor(max_workers=workers) as pool:
             fetched = pool.map(lambda i: (i, _fetch_one(points[i], wanted[i])), reps)
         for i, weather in fetched:
             for j in cells[(round(points[i][0], 2), round(points[i][1], 2), wanted[i])]:
