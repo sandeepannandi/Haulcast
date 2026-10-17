@@ -189,6 +189,18 @@ class PlanViewTest(SimpleTestCase):
         self.assertTrue(data["routes"][1]["recommended"])
         self.assertEqual(data["routes"][0]["summary"]["worst"], "severe")
 
+    @patch("routing.views.services.weather_for")
+    @patch("routing.views.services.get_routes", side_effect=fake_routes)
+    @patch("routing.views.services.geocode")
+    def test_weather_outage_returns_502(self, mock_geocode, mock_routes, mock_weather):
+        import requests as real_requests
+
+        mock_geocode.side_effect = self.fake_geocode
+        mock_weather.side_effect = real_requests.ConnectionError("down")
+        resp = self.post()
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn("weather lookup failed", resp.json()["detail"])
+
     def test_invalid_interval_rejected(self):
         resp = self.post(interval=12)
         self.assertEqual(resp.status_code, 400)

@@ -43,7 +43,7 @@ def plan(request):
         raw_routes = services.get_routes(origin, destination)
     except ValueError as exc:
         return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-    except services.requests.RequestException:
+    except services.requests.RequestException as exc:
         return Response({"detail": "a map or weather service is unreachable, try again"}, status=status.HTTP_502_BAD_GATEWAY)
 
     routes = []
@@ -54,7 +54,10 @@ def plan(request):
         for point in checkpoints:
             frac = point["mile"] / total_miles if total_miles else 0
             etas.append(departure + timedelta(minutes=duration * frac))
-        weather = services.weather_for([[p["lat"], p["lon"]] for p in checkpoints], etas)
+        try:
+            weather = services.weather_for([[p["lat"], p["lon"]] for p in checkpoints], etas)
+        except services.requests.RequestException as exc:
+            return Response({"detail": "weather lookup failed: " + str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
         levels = [risk.classify_weather(w, load_lbs) for w in weather]
         rows = []
         for point, eta, w, level in zip(checkpoints, etas, weather, levels):
@@ -112,8 +115,8 @@ def heatmap(request):
             grid.append((round(point["lat"] + dlat, 4), round(point["lon"] + dlon, 4)))
     try:
         weather = services.weather_for(grid, [moment] * len(grid))
-    except services.requests.RequestException:
-        return Response({"detail": "the weather service is unreachable, try again"}, status=status.HTTP_502_BAD_GATEWAY)
+    except services.requests.RequestException as exc:
+        return Response({"detail": "weather lookup failed: " + str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
     cells = []
     for (lat, lon), w in zip(grid, weather):
         level = risk.classify_weather(w, load_lbs)
