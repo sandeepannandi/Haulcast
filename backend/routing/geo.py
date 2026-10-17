@@ -37,3 +37,30 @@ def sample_points(coords, spacing_miles, max_points=200):
         step = len(points) / max_points
         points = [points[int(i * step)] for i in range(max_points - 1)] + [points[-1]]
     return points, total
+
+
+def cumulative_miles(coords):
+    marks = [0.0]
+    for prev, cur in zip(coords, coords[1:]):
+        marks.append(marks[-1] + haversine_miles(prev, cur))
+    return marks
+
+
+def pace_minutes(mile, marks, pace, total_minutes):
+    if not marks or not pace or len(pace) != len(marks) or marks[-1] <= 0:
+        frac = mile / marks[-1] if marks and marks[-1] else 0.0
+        return total_minutes * frac
+    if mile <= 0:
+        return 0.0
+    if mile >= marks[-1]:
+        return pace[-1]
+    lo, hi = 0, len(marks) - 1
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if marks[mid] <= mile:
+            lo = mid
+        else:
+            hi = mid
+    span = marks[hi] - marks[lo]
+    frac = (mile - marks[lo]) / span if span else 0.0
+    return pace[lo] + (pace[hi] - pace[lo]) * frac

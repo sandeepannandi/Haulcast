@@ -49,7 +49,7 @@ def get_routes(origin, destination, count=3):
     )
     resp = requests.get(
         url,
-        params={"alternatives": "true", "geometries": "geojson", "overview": "full"},
+        params={"alternatives": "true", "geometries": "geojson", "overview": "full", "annotations": "duration"},
         headers=HEADERS,
         timeout=30,
     )
@@ -60,10 +60,18 @@ def get_routes(origin, destination, count=3):
     routes = []
     for raw in data["routes"][:count]:
         coords = [[round(lat, 5), round(lon, 5)] for lon, lat in raw["geometry"]["coordinates"]]
+        legs = [(leg.get("annotation") or {}).get("duration") or [] for leg in raw.get("legs", [])]
+        pace = [0.0]
+        for leg in legs:
+            for seconds in leg:
+                pace.append(pace[-1] + seconds / 60)
+        if len(pace) != len(coords):
+            pace = None
         routes.append({
             "distance_miles": raw["distance"] / 1609.344,
             "duration_min": raw["duration"] / 60,
             "geometry": coords,
+            "pace": pace,
         })
     return routes
 

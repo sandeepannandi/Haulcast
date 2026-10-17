@@ -56,10 +56,11 @@ def plan(request):
     for raw in raw_routes:
         checkpoints, total_miles = geo.sample_points(raw["geometry"], interval)
         duration = raw["duration_min"]
-        etas = []
-        for point in checkpoints:
-            frac = point["mile"] / total_miles if total_miles else 0
-            etas.append(departure + timedelta(minutes=duration * frac))
+        marks = geo.cumulative_miles(raw["geometry"])
+        etas = [
+            departure + timedelta(minutes=geo.pace_minutes(point["mile"], marks, raw.get("pace"), duration))
+            for point in checkpoints
+        ]
         try:
             weather = services.weather_for([[p["lat"], p["lon"]] for p in checkpoints], etas)
         except services.requests.RequestException as exc:
