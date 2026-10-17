@@ -234,3 +234,116 @@ class HeatmapViewTest(SimpleTestCase):
     def test_missing_geometry_rejected(self):
         resp = self.client.post("/api/heatmap/", {"time": "2026-10-18T12:00:00Z"}, format="json")
         self.assertEqual(resp.status_code, 400)
+
+
+POINTS_RESPONSE = {"properties": {"forecastGridData": "https://api.weather.gov/gridpoints/LOT/76,73"}}
+
+GRID_RESPONSE = {
+    "properties": {
+        "windSpeed": {
+            "uom": "wmoUnit:km_h-1",
+            "values": [
+                {"validTime": "2026-10-18T08:00:00+00:00/PT1H", "value": 40.0},
+                {"validTime": "2026-10-18T09:00:00+00:00/PT1H", "value": 80.0},
+            ],
+        },
+        "quantitativePrecipitation": {
+            "uom": "wmoUnit:mm",
+            "values": [
+                {"validTime": "2026-10-18T06:00:00+00:00/PT6H", "value": 12.7},
+            ],
+        },
+        "snowfallAmount": {
+            "uom": "wmoUnit:mm",
+            "values": [
+                {"validTime": "2026-10-18T08:00:00+00:00/PT2H", "value": 25.4},
+            ],
+        },
+    }
+}
+
+
+class FakeResponse:
+    def __init__(self, payload, status=200):
+        self.payload = payload
+        self.status_code = status
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            import requests as real_requests
+
+            raise real_requests.HTTPError(str(self.status_code), response=self)
+
+    def json(self):
+        return self.payload
+
+
+class NwsWeatherTest(SimpleTestCase):
+    def setUp(self):
+        from routing import services
+
+        services._weather_cache.clear()
+        services._nws_url_cache.clear()
+        services._nws_grid_cache.clear()
+        self.services = services
+
+    def test_nws_values_converted_and_spread(self):
+        calls = []
+
+        def fake_get(url, **kwargs):
+            calls.append(url)
+            if "/points/" in url:
+                return FakeResponse(POINTS_RESPONSE)
+            return FakeResponse(GRID_RESPONSE)
+
+        with patch("routing.services.requests.get", side_effect=fake_get):
+            out = self.services.weather_for(
+                [(41.88, -87.63)],
+                [datetime(2026, 10, 18, 9, 0, tzinfo=timezone.utc)],
+            )
+        weather = out[0]
+        self.assertAlmostEqual(weather["wind_mph"], 80.0 * 0.621371, places=1)
+        self.assertAlmostEqual(weather["rain_in_hr"], round((12.7 / 6) / 25.4, 3), places=3)
+        self.assertAlmostEqual(weather["snow_in_hr"], round((25.4 / 2) / 25.4, 3), places=3)
+
+    def test_grids_cached_across_points(self):
+        def fake_get(url, **kwargs):
+            if "/points/" in url:
+                return FakeResponse(POINTS_RESPONSE)
+            return FakeResponse(GRID_RESPONSE)
+
+        points = [(41.881, -87.631), (41.882, -87.632), (41.883, -87.633)]
+        times = [datetime(2026, 10, 18, 8, 0, tzinfo=timezone.utc)] * 3
+        with patch("routing.services.requests.get", side_effect=fake_get) as mock_get:
+            self.services.weather_for(points, times)
+        self.assertEqual(mock_get.call_count, 2)
+
+    def test_outside_us_falls_back_to_open_meteo(self):
+        def fake_get(url, **kwargs):
+            if "api.weather.gov" in url:
+                return FakeResponse({}, status=404)
+            return FakeResponse({
+                "hourly": {
+                    "time": ["2026-10-18T08:00"],
+                    "windspeed_10m": [12.0],
+                    "rain": [0.2],
+                    "snowfall": [0.0],
+                }
+            })
+
+        with patch("routing.services.requests.get", side_effect=fake_get):
+            out = self.services.weather_for(
+                [(51.5, -0.12)],
+                [datetime(2026, 10, 18, 8, 0, tzinfo=timezone.utc)],
+            )
+        self.assertEqual(out[0], {"wind_mph": 12.0, "rain_in_hr": 0.2, "snow_in_hr": 0.0})
+
+
+class DurationParseTest(SimpleTestCase):
+    def test_durations(self):
+        from routing import services
+
+        self.assertEqual(services._duration_hours("PT1H"), 1)
+        self.assertEqual(services._duration_hours("PT6H"), 6)
+        self.assertEqual(services._duration_hours("P1D"), 24)
+        self.assertEqual(services._duration_hours(""), 1)

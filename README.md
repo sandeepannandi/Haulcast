@@ -141,9 +141,11 @@ Environment variables (frontend): `VITE_API_URL` - base API URL, e.g.
 - **OSRM public demo server for routes.** No key, real road routing with
   alternatives. It is a shared demo service, so a production deployment would
   move to a paid or self-hosted router without code changes (one function).
-- **Open-Meteo for weather.** Keyless, hourly, 16-day forecast with wind, rain
-  and snowfall. Checkpoint weather requests are batched (many coordinates in
-  one call) and cached in-process for 30 minutes.
+- **National Weather Service for weather.** Keyless, hourly grid forecasts with
+  wind speed, quantitative precipitation and snowfall, friendly to cloud
+  hosting. Grid cells are fetched concurrently and cached in-process for 30
+  minutes; rain uses QPF (liquid equivalent) and snow uses snowfall depth per
+  hour. Points outside the US fall back to Open-Meteo.
 - **ETA is proportional to distance.** A checkpoint at 40% of the route miles
   gets 40% of the drive time. Real trucks slow down for grades and weather;
   the hook for a per-segment speed model is `sample_points` in `geo.py`.
