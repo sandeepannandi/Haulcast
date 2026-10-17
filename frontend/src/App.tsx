@@ -13,6 +13,7 @@ export default function App() {
   const [heatHour, setHeatHour] = useState(0);
   const [heatCells, setHeatCells] = useState<HeatCell[] | null>(null);
   const [heatLoading, setHeatLoading] = useState(false);
+  const [heatError, setHeatError] = useState(false);
 
   const handleSubmit = useCallback((input: PlanInput) => {
     setLoading(true);
@@ -42,10 +43,14 @@ export default function App() {
     const route = plan.routes[selected];
     if (!route) return;
     setHeatLoading(true);
+    setHeatError(false);
     const timer = setTimeout(() => {
       fetchHeatmap(route.geometry, heatTime.toISOString(), plan.load_lbs)
         .then(setHeatCells)
-        .catch(() => setHeatCells(null))
+        .catch(() => {
+          setHeatCells(null);
+          setHeatError(true);
+        })
         .finally(() => setHeatLoading(false));
     }, 350);
     return () => clearTimeout(timer);
@@ -55,22 +60,38 @@ export default function App() {
     <div className="layout">
       <aside className="sidebar">
         <header>
-          <h1>Haulcast</h1>
+          <h1>
+            <span className="logo" />
+            Haulcast
+          </h1>
           <p>Pick the safest route across weather, load and time.</p>
         </header>
         <TripForm loading={loading} onSubmit={handleSubmit} />
         {error && <div className="error-banner">{error}</div>}
-        {plan && (
+        {loading && (
+          <div className="route-list">
+            <div className="skeleton" />
+            <div className="skeleton" />
+          </div>
+        )}
+        {!plan && !loading && !error && (
+          <div className="empty-state">
+            <strong>No trip yet</strong>
+            <span>Enter a start, a destination and your load to compare routes by weather risk.</span>
+          </div>
+        )}
+        {plan && !loading && (
           <>
             <RouteList routes={plan.routes} selected={selected} onSelect={setSelected} />
             <div className="heat-panel">
               <label className="heat-toggle">
+                <span>Weather heatmap</span>
                 <input
                   type="checkbox"
+                  className="switch"
                   checked={heatOn}
                   onChange={(e) => setHeatOn(e.target.checked)}
                 />
-                Weather heatmap
               </label>
               {heatOn && (
                 <>
@@ -82,10 +103,17 @@ export default function App() {
                     value={heatHour}
                     onChange={(e) => setHeatHour(Number(e.target.value))}
                   />
-                  <div className="heat-time">
+                  <div className="heat-scale">
+                    <span>Now</span>
+                    <span>+24h</span>
+                    <span>+48h</span>
+                  </div>
+                  <div className={`heat-time${heatError ? " heat-error" : ""}`}>
                     {heatLoading
                       ? "Loading forecast..."
-                      : heatTime
+                      : heatError
+                        ? "Forecast unavailable. Move the slider to retry."
+                        : heatTime
                         ? `Forecast for ${heatTime.toLocaleString(undefined, {
                             weekday: "short",
                             month: "short",

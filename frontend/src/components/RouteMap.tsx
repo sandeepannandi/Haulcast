@@ -33,8 +33,9 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
       style: STYLE_URL,
       center: [-98.5, 39.8],
       zoom: 3.5,
+      attributionControl: { compact: true },
     });
-    map.current.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.current.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
     return () => {
       map.current?.remove();
       map.current = null;
@@ -61,8 +62,7 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
     function build() {
       if (!m || !routes || routes.length === 0) return;
       const bounds = new maplibregl.LngLatBounds();
-      const lineColors = ["#8250df", "#1a7f37", "#0969da"];
-      const order = routes.map((_, i) => i).sort((a, b) => (a === selected ? 1 : 0) - (b === selected ? 1 : 0));
+            const order = routes.map((_, i) => i).sort((a, b) => (a === selected ? 1 : 0) - (b === selected ? 1 : 0));
 
       for (const i of order) {
         const route = routes[i];
@@ -74,13 +74,24 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
         });
         const isSelected = i === selected;
         m.addLayer({
+          id: `haul-route-${i}-casing`,
+          type: "line",
+          source: `haul-route-${i}`,
+          layout: { "line-cap": "round", "line-join": "round" },
+          paint: {
+            "line-color": "#ffffff",
+            "line-width": isSelected ? 9 : 6,
+            "line-opacity": isSelected ? 1 : 0.7,
+          },
+        });
+        m.addLayer({
           id: `haul-route-${i}-line`,
           type: "line",
           source: `haul-route-${i}`,
+          layout: { "line-cap": "round", "line-join": "round" },
           paint: {
-            "line-color": isSelected ? lineColors[i % lineColors.length] : "#9fa8b3",
+            "line-color": isSelected ? "#111111" : "#a3a3a3",
             "line-width": isSelected ? 5 : 3,
-            "line-opacity": isSelected ? 0.95 : 0.55,
           },
         });
       }
@@ -111,10 +122,10 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
           type: "circle",
           source: "haul-checkpoints",
           paint: {
-            "circle-radius": 6,
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 4, 8, 7, 12, 9],
             "circle-color": ["get", "color"],
             "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 1.5,
+            "circle-stroke-width": 2,
           },
         });
         m.on("click", "haul-checkpoints-dots", (e) => {
@@ -126,9 +137,12 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
             .setLngLat((f.geometry as GeoJSON.Point).coordinates as [number, number])
             .setHTML(
               `<div class="checkpoint-pop">
-                <strong>Mile ${p.mile}</strong> - ${p.eta}<br/>
-                Wind ${p.wind} mph - Rain ${p.rain} in/hr - Snow ${p.snow} in/hr<br/>
-                Risk: <strong>${p.level}</strong>
+                <strong>Mile ${p.mile}</strong>
+                <span class="pop-eta">${p.eta}</span>
+                <div>Wind ${p.wind} mph</div>
+                <div>Rain ${p.rain} in/hr</div>
+                <div>Snow ${p.snow} in/hr</div>
+                <div class="pop-risk"><i style="background:${p.color}"></i>${String(p.level).replace("_", " ")}</div>
               </div>`
             )
             .addTo(m);
@@ -142,7 +156,8 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
       }
 
       if (!bounds.isEmpty()) {
-        m.fitBounds(bounds, { padding: 60, duration: 600 });
+        const narrow = window.innerWidth < 800;
+        m.fitBounds(bounds, { padding: narrow ? 40 : 90, duration: 700 });
       }
     }
 
@@ -189,8 +204,8 @@ export default function RouteMap({ routes, selected, heatCells, heatVisible }: P
           source: "haul-heat",
           paint: {
             "heatmap-weight": ["interpolate", ["linear"], ["get", "intensity"], 0, 0.05, 1, 1],
-            "heatmap-radius": 28,
-            "heatmap-opacity": 0.75,
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 3, 18, 6, 32, 10, 60],
+            "heatmap-opacity": 0.8,
             "heatmap-color": [
               "interpolate",
               ["linear"],

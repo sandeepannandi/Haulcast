@@ -83,7 +83,8 @@ export default function TripForm({ loading, onSubmit }: Props) {
         </label>
       </div>
       <button type="submit" disabled={loading}>
-        {loading ? "Planning..." : "Find routes"}
+        {loading && <span className="spinner" />}
+        {loading ? "Planning route" : "Find routes"}
       </button>
     </form>
   );
