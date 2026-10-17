@@ -107,7 +107,7 @@ def heatmap(request):
     except (TypeError, ValueError, IndexError):
         return Response({"detail": "geometry must be a list of [lat, lon] pairs"}, status=status.HTTP_400_BAD_REQUEST)
 
-    along, _ = geo.sample_points(coords, 12, max_points=40)
+    along, _ = geo.sample_points(coords, 12, max_points=16)
     spread = 0.09
     grid = []
     for point in along:

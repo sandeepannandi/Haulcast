@@ -215,7 +215,7 @@ def weather_for(points, times):
         else:
             todo.append(i)
     if todo:
-        with ThreadPoolExecutor(max_workers=6) as pool:
+        with ThreadPoolExecutor(max_workers=12) as pool:
             fetched = pool.map(lambda i: (i, _fetch_one(points[i], wanted[i])), todo)
         for i, weather in fetched:
             results[i] = weather

@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn --chdir backend config.wsgi:application
+    startCommand: gunicorn --chdir backend config.wsgi:application --timeout 120 --workers 2
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.7
