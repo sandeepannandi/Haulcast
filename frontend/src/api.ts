@@ -62,12 +62,38 @@ async function readDetail(resp: Response): Promise<string> {
   }
 }
 
-export async function fetchPlan(input: PlanInput): Promise<PlanResult> {
-  const resp = await fetch(`${API_URL}/plan/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+const RETRY_DELAYS = [3000, 6000, 12000];
+const RETRY_STATUSES = [502, 503, 504];
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function post(path: string, body: unknown, onWaking?: () => void): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    let resp: Response | null = null;
+    try {
+      resp = await fetch(`${API_URL}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch (err) {
+      if (attempt >= RETRY_DELAYS.length) {
+        throw new Error("The server is not responding. Please try again in a moment.");
+      }
+    }
+    if (resp && !RETRY_STATUSES.includes(resp.status)) return resp;
+    if (attempt >= RETRY_DELAYS.length) {
+      throw new Error("The server is not responding. Please try again in a moment.");
+    }
+    onWaking?.();
+    await sleep(RETRY_DELAYS[attempt]);
+  }
+}
+
+export async function fetchPlan(input: PlanInput, onWaking?: () => void): Promise<PlanResult> {
+  const resp = await post("/plan/", input, onWaking);
   if (!resp.ok) {
     throw new Error(await readDetail(resp));
   }
@@ -80,11 +106,7 @@ export async function fetchHeatmap(
   loadLbs: number,
   detail: "coarse" | "full" = "full"
 ): Promise<HeatCell[]> {
-  const resp = await fetch(`${API_URL}/heatmap/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ geometry, time, load_weight: loadLbs, detail }),
-  });
+  const resp = await post("/heatmap/", { geometry, time, load_weight: loadLbs, detail });
   if (!resp.ok) {
     throw new Error(await readDetail(resp));
   }
