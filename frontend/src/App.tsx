@@ -44,16 +44,29 @@ export default function App() {
     if (!route) return;
     setHeatLoading(true);
     setHeatError(false);
+    let cancelled = false;
     const timer = setTimeout(() => {
-      fetchHeatmap(route.geometry, heatTime.toISOString(), plan.load_lbs)
-        .then(setHeatCells)
-        .catch(() => {
-          setHeatCells(null);
-          setHeatError(true);
+      const iso = heatTime.toISOString();
+      fetchHeatmap(route.geometry, iso, plan.load_lbs, "coarse")
+        .then((cells) => {
+          if (!cancelled) setHeatCells((prev) => prev ?? cells);
         })
-        .finally(() => setHeatLoading(false));
+        .catch(() => undefined)
+        .then(() => fetchHeatmap(route.geometry, iso, plan.load_lbs, "full"))
+        .then((cells) => {
+          if (!cancelled) setHeatCells(cells);
+        })
+        .catch(() => {
+          if (!cancelled) setHeatError(true);
+        })
+        .finally(() => {
+          if (!cancelled) setHeatLoading(false);
+        });
     }, 350);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [plan, selected, heatOn, heatTime]);
 
   return (

@@ -7,6 +7,12 @@ from rest_framework.response import Response
 from . import geo, risk, services
 
 VALID_INTERVALS = (10, 25, 50)
+SPREAD = 0.15
+SNAP = 0.05
+
+
+def snap(value):
+    return round(round(value / SNAP) * SNAP, 3)
 
 
 def parse_moment(raw):
@@ -107,14 +113,17 @@ def heatmap(request):
     except (TypeError, ValueError, IndexError):
         return Response({"detail": "geometry must be a list of [lat, lon] pairs"}, status=status.HTTP_400_BAD_REQUEST)
 
-    along, _ = geo.sample_points(coords, 12, max_points=16)
-    spread = 0.09
+    coarse = request.data.get("detail") == "coarse"
+    along, _ = geo.sample_points(coords, 12, max_points=12 if coarse else 10)
+    offsets = ((0, 0),) if coarse else ((0, 0), (SPREAD, 0), (-SPREAD, 0), (0, SPREAD), (0, -SPREAD))
     grid = []
     for point in along:
-        for dlat, dlon in ((0, 0), (spread, 0), (-spread, 0), (0, spread), (0, -spread)):
-            grid.append((round(point["lat"] + dlat, 4), round(point["lon"] + dlon, 4)))
+        for dlat, dlon in offsets:
+            cell = (snap(point["lat"] + dlat), snap(point["lon"] + dlon))
+            if cell not in grid:
+                grid.append(cell)
     try:
-        weather = services.weather_for(grid, [moment] * len(grid))
+        weather = services.weather_for(grid, [moment] * len(grid), workers=24)
     except services.requests.RequestException as exc:
         return Response({"detail": "weather lookup failed: " + str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
     cells = []
