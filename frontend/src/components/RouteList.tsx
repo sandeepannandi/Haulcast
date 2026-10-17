@@ -12,11 +12,21 @@ function formatDuration(minutes: number): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
+function formatArrival(iso: string): string {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export default function RouteList({ routes, selected, onSelect }: Props) {
   return (
     <div className="route-list">
+      <h2 className="section-title">Routes</h2>
       {routes.map((route, i) => {
         const total = route.distance_miles || 1;
+        const last = route.checkpoints[route.checkpoints.length - 1];
         return (
           <button
             key={i}
@@ -29,14 +39,29 @@ export default function RouteList({ routes, selected, onSelect }: Props) {
               {route.recommended && <span className="badge">Recommended</span>}
             </div>
             <div className="route-stats">
-              <span>{route.distance_miles.toFixed(0)} mi</span>
-              <span>{formatDuration(route.duration_min)}</span>
+              <div>
+                <strong>{route.distance_miles.toFixed(0)}</strong>
+                <span>miles</span>
+              </div>
+              <div>
+                <strong>{formatDuration(route.duration_min)}</strong>
+                <span>drive time</span>
+              </div>
+              {last && (
+                <div>
+                  <strong>{formatArrival(last.eta)}</strong>
+                  <span>arrival</span>
+                </div>
+              )}
+            </div>
+            <div className="route-risk">
               <span
                 className="level-chip"
                 style={{ background: LEVEL_COLORS[route.summary.worst] }}
               >
                 {LEVEL_LABELS[route.summary.worst]}
               </span>
+              <span className="risk-caption">worst conditions on route</span>
             </div>
             <div className="risk-bar">
               {LEVEL_ORDER.map((level) => {
