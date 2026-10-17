@@ -77,5 +77,5 @@ wakes and the weather cache fills; later requests are fast. Backend env vars: `D
   would swap one function for a paid or self-hosted router.
 - ETA is proportional to distance covered; the hook for a per-segment speed
   model is `sample_points` in `geo.py`.
-- Stateless: geocoding and weather are cached in memory for 30 minutes, no
-  database.
+- Stateless: weather is cached in memory for 30 minutes; geocoding is cached
+  in memory until restart. No database.
