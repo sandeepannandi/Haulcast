@@ -75,7 +75,7 @@ wakes and the weather cache fills; later requests are fast. Backend env vars: `D
 
 - OSRM public demo server: keyless real road routing; a production deployment
   would swap one function for a paid or self-hosted router.
-- ETA is proportional to distance covered; the hook for a per-segment speed
-  model is `sample_points` in `geo.py`.
+- ETA comes from OSRM's per-segment drive times, interpolated to each
+  checkpoint; there is no live traffic, so times assume typical speeds.
 - Stateless: weather is cached in memory for 30 minutes; geocoding is cached
   in memory until restart. No database.

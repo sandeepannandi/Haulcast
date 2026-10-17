@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -128,11 +128,38 @@ class RecommendationTest(SimpleTestCase):
 FAKE_GEOMETRY = [[40.0 + i * 0.05, -75.0] for i in range(40)]
 
 
+class PaceMathTest(SimpleTestCase):
+    def test_cumulative_miles_grows(self):
+        marks = geo.cumulative_miles(FAKE_GEOMETRY)
+        self.assertEqual(marks[0], 0.0)
+        self.assertEqual(len(marks), len(FAKE_GEOMETRY))
+        self.assertTrue(all(b > a for a, b in zip(marks, marks[1:])))
+
+    def test_pace_interpolates_between_marks(self):
+        marks = [0.0, 10.0, 20.0]
+        pace = [0.0, 30.0, 40.0]
+        self.assertEqual(geo.pace_minutes(0, marks, pace, 40.0), 0.0)
+        self.assertEqual(geo.pace_minutes(5, marks, pace, 40.0), 15.0)
+        self.assertEqual(geo.pace_minutes(15, marks, pace, 40.0), 35.0)
+        self.assertEqual(geo.pace_minutes(20, marks, pace, 40.0), 40.0)
+
+    def test_pace_falls_back_to_even_spread(self):
+        marks = [0.0, 10.0, 20.0]
+        self.assertEqual(geo.pace_minutes(10, marks, None, 40.0), 20.0)
+        self.assertEqual(geo.pace_minutes(10, marks, [0.0], 40.0), 20.0)
+        self.assertEqual(geo.pace_minutes(10, [], None, 40.0), 0.0)
+
+
 def fake_routes(origin, destination, count=3):
     return [
         {"distance_miles": 100.0, "duration_min": 120.0, "geometry": FAKE_GEOMETRY},
         {"distance_miles": 110.0, "duration_min": 150.0, "geometry": FAKE_GEOMETRY},
     ]
+
+
+def fake_paced_routes(origin, destination, count=3):
+    pace = [float(i * i) for i in range(len(FAKE_GEOMETRY))]
+    return [{"distance_miles": 100.0, "duration_min": 120.0, "geometry": FAKE_GEOMETRY, "pace": pace}]
 
 
 def fake_calm_weather(points, times, workers=16):
@@ -174,6 +201,24 @@ class PlanViewTest(SimpleTestCase):
         self.assertEqual(etas, sorted(etas))
         self.assertTrue(all(c["level"] == "low" for c in first["checkpoints"]))
         self.assertEqual(first["summary"]["worst"], "low")
+
+    @patch("routing.views.services.weather_for", side_effect=fake_calm_weather)
+    @patch("routing.views.services.get_routes", side_effect=fake_paced_routes)
+    @patch("routing.views.services.geocode")
+    def test_etas_follow_segment_pace(self, mock_geocode, mock_routes, mock_weather):
+        mock_geocode.side_effect = self.fake_geocode
+        resp = self.post()
+        self.assertEqual(resp.status_code, 200)
+        checkpoints = resp.json()["routes"][0]["checkpoints"]
+        self.assertEqual(checkpoints[0]["eta"], "2026-10-18T08:00:00+00:00")
+        last = datetime.fromisoformat(checkpoints[-1]["eta"])
+        departure = datetime(2026, 10, 18, 8, 0, tzinfo=timezone.utc)
+        even_spread = departure + timedelta(minutes=120)
+        self.assertGreater(last, even_spread + timedelta(hours=12))
+        paced = (last - departure).total_seconds() / 60
+        self.assertAlmostEqual(paced, 39 * 39, delta=2)
+        etas = [c["eta"] for c in checkpoints]
+        self.assertEqual(etas, sorted(etas))
 
     @patch("routing.views.services.weather_for")
     @patch("routing.views.services.get_routes", side_effect=fake_routes)
@@ -345,6 +390,42 @@ class NwsWeatherTest(SimpleTestCase):
                 [datetime(2026, 10, 18, 8, 0, tzinfo=timezone.utc)],
             )
         self.assertEqual(out[0], {"wind_mph": 12.0, "rain_in_hr": 0.2, "snow_in_hr": 0.0})
+
+
+class RoutePaceTest(SimpleTestCase):
+    def osrm_payload(self, annotation=None):
+        leg = {"distance": 1609.344, "duration": 180.0}
+        if annotation is not None:
+            leg["annotation"] = annotation
+        route = {
+            "distance": 1609.344,
+            "duration": 180.0,
+            "geometry": {"coordinates": [[-75.0, 40.0], [-75.01, 40.0], [-75.02, 40.0]]},
+            "legs": [leg],
+        }
+        return {"code": "Ok", "routes": [route]}
+
+    def fetch(self, payload):
+        with patch("routing.services.requests.get", return_value=FakeResponse(payload)):
+            from routing import services
+
+            return services.get_routes({"lat": 40.0, "lon": -75.0}, {"lat": 40.1, "lon": -75.0})
+
+    def test_pace_built_from_annotation(self):
+        routes = self.fetch(self.osrm_payload({"duration": [120.0, 60.0]}))
+        self.assertEqual(routes[0]["pace"], [0.0, 2.0, 3.0])
+
+    def test_pace_none_without_legs(self):
+        payload = self.osrm_payload({"duration": [120.0, 60.0]})
+        payload["routes"][0]["legs"] = []
+        self.assertIsNone(self.fetch(payload)[0]["pace"])
+
+    def test_pace_none_without_annotation(self):
+        self.assertIsNone(self.fetch(self.osrm_payload())[0]["pace"])
+
+    def test_pace_none_on_length_mismatch(self):
+        routes = self.fetch(self.osrm_payload({"duration": [120.0]}))
+        self.assertIsNone(routes[0]["pace"])
 
 
 class DurationParseTest(SimpleTestCase):
