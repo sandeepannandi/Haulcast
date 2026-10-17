@@ -8,6 +8,7 @@ export default function App() {
   const [plan, setPlan] = useState<PlanResult | null>(null);
   const [selected, setSelected] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [waking, setWaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [heatOn, setHeatOn] = useState(false);
   const [heatHour, setHeatHour] = useState(0);
@@ -18,8 +19,9 @@ export default function App() {
   const handleSubmit = useCallback((input: PlanInput) => {
     setLoading(true);
     setError(null);
+    setWaking(false);
     setHeatCells(null);
-    fetchPlan(input)
+    fetchPlan(input, () => setWaking(true))
       .then((result) => {
         setPlan(result);
         const best = result.routes.findIndex((r) => r.recommended);
@@ -35,7 +37,10 @@ export default function App() {
         setPlan(null);
         setError(err.message);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        setWaking(false);
+      });
   }, []);
 
   const heatTime = useMemo(() => {
@@ -84,6 +89,9 @@ export default function App() {
         </header>
         <TripForm loading={loading} onSubmit={handleSubmit} />
         {error && <div className="error-banner">{error}</div>}
+        {loading && waking && (
+          <div className="waking-note">Waking the server. The first request after a quiet spell can take up to a minute.</div>
+        )}
         {loading && (
           <div className="route-list">
             <div className="skeleton" />

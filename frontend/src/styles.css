@@ -165,6 +165,16 @@ select {
   line-height: 1.5;
 }
 
+.waking-note {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .empty-state {
   display: flex;
   flex-direction: column;
