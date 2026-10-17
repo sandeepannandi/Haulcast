@@ -9,13 +9,13 @@ NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}"
 OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast"
 
-HEADERS = {"User-Agent": "haulcast/1.0"}
+HEADERS = {"User-Agent": "Haulcast/1.0"}
 
 WEATHER_CACHE_TTL = 1800
 WEATHER_BATCH_SIZE = 80
 
 NWS_POINTS_URL = "https://api.weather.gov/points/{lat},{lon}"
-NWS_HEADERS = {"User-Agent": "haulcast (github.com/sandeepannandi/haulcast)", "Accept": "application/geo+json"}
+NWS_HEADERS = {"User-Agent": "Haulcast (github.com/sandeepannandi/Haulcast)", "Accept": "application/geo+json"}
 
 _geocode_cache = {}
 _weather_cache = {}
